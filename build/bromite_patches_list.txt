@@ -203,12 +203,8 @@ Force-accessibility-text-scaling.patch
 Force-package-name-to-org.chromium.chrome.patch
 Donot-stretch-when-force-enable-zoom-checked.patch
 Force-desktop-mode.patch
-Telemetry-event-video-full-screen.patch
-Update-telemetry-lib-implementation.patch
 Fix-not-current-site-when-tab-opened-blank-target.patch
-Modify-default-url-AP9-5158.patch
-Hide-bookmark-and-settings.patch
-Disable-bookmark-keyboard-shortcuts.patch
 Disable-update-and-welcome.patch
 Hide-view-source-and-exit.patch
 Change-default-user-agent.patch
+Set-AllowUserCertificates-flag-to-ENABLE.patch

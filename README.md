@@ -13,6 +13,28 @@ One patch has been modified:
 
 - The Bromite adblock engine is disabled by default
 
+These patches have been removed from the AP9 master branch:
+
+- Telemetry-event-video-full-screen.patch     -  result in Chromium crashed in ap7-ktc
+- Update-telemetry-lib-implementation.patch   -  result in Chromium crashed in ap7-ktc
+- Modify-default-url-AP9-5158.patch           -  AP9-5158 - do not need this feature in ap7
+- Hide-bookmark-and-settings.patch            -  AP9-5181 - do not need this feature in ap7
+- Disable-bookmark-keyboard-shortcuts.patch   -  AP9-5555 - do not need this feature in ap7
+
+These custom patches have been enabled for Chromium in panel:
+
+- Turn-AdBlock-off-by-default.patch
+- Force-tablet-mode.patch
+- Set-default-page-url.patch
+- Force-accessibility-text-scaling.patch
+- Force-package-name-to-org.chromium.chrome.patch
+- Donot-stretch-when-force-enable-zoom-checked.patch
+- Force-desktop-mode.patch
+- Fix-not-current-site-when-tab-opened-blank-target.patch
+- Disable-update-and-welcome.patch
+- Hide-view-source-and-exit.patch
+- Change-default-user-agent.patch
+
 # Build instructions
 
 ## Getting Chromium

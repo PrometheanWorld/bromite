@@ -1,0 +1,40 @@
+From 4062cfa89a5718b49de3f0cf9f8dd45b1af682e8 Mon Sep 17 00:00:00 2001
+From: Channing Yu <channing@nd.com.cn>
+Date: Tue, 1 Nov 2022 07:06:48 +0000
+Subject: [PATCH] AP7E-2908 Chromium no longer works with certificates
+
+Set AllowUserCertificates flag to ENABLE by default.
+---
+ chrome/browser/flags/android/chrome_feature_list.cc             | 2 +-
+ .../org/chromium/chrome/browser/flags/CachedFeatureFlags.java   | 2 +-
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/chrome/browser/flags/android/chrome_feature_list.cc b/chrome/browser/flags/android/chrome_feature_list.cc
+index c56885927ea02..62e11fba762cd 100644
+--- a/chrome/browser/flags/android/chrome_feature_list.cc
++++ b/chrome/browser/flags/android/chrome_feature_list.cc
+@@ -412,7 +412,7 @@ const base::Feature kAdaptiveButtonInTopToolbarCustomizationV2{
+     base::FEATURE_DISABLED_BY_DEFAULT};
+ 
+ const base::Feature kAllowUserCertificates = {
+-    "AllowUserCertificates", base::FEATURE_DISABLED_BY_DEFAULT};
++    "AllowUserCertificates", base::FEATURE_ENABLED_BY_DEFAULT};
+ 
+ const base::Feature kAddToHomescreenIPH{"AddToHomescreenIPH",
+                                         base::FEATURE_DISABLED_BY_DEFAULT};
+diff --git a/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/CachedFeatureFlags.java b/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/CachedFeatureFlags.java
+index e56324f956756..97cf9c91e8876 100644
+--- a/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/CachedFeatureFlags.java
++++ b/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/CachedFeatureFlags.java
+@@ -51,7 +51,7 @@ public class CachedFeatureFlags {
+                     .put(ChromeFeatureList.ANONYMOUS_UPDATE_CHECKS, true)
+                     .put(ChromeFeatureList.BOOKMARK_BOTTOM_SHEET, false)
+                     .put(ChromeFeatureList.CONDITIONAL_TAB_STRIP_ANDROID, false)
+-                    .put(ChromeFeatureList.ALLOW_USER_CERTIFICATES, false)
++                    .put(ChromeFeatureList.ALLOW_USER_CERTIFICATES, true)
+                     .put(ChromeFeatureList.LENS_CAMERA_ASSISTED_SEARCH, false)
+                     .put(ChromeFeatureList.SERVICE_MANAGER_FOR_DOWNLOAD, true)
+                     .put(ChromeFeatureList.SERVICE_MANAGER_FOR_BACKGROUND_PREFETCH, true)
+-- 
+2.17.1
+

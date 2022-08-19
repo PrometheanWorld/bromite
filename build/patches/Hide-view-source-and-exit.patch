@@ -26,14 +26,17 @@ diff --git a/chrome/android/java/res/menu/main_menu.xml b/chrome/android/java/re
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/app/appmenu/AppMenuPropertiesDelegateImpl.java b/chrome/android/java/src/org/chromium/chrome/browser/app/appmenu/AppMenuPropertiesDelegateImpl.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/app/appmenu/AppMenuPropertiesDelegateImpl.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/app/appmenu/AppMenuPropertiesDelegateImpl.java
-@@ -522,6 +522,8 @@ public class AppMenuPropertiesDelegateImpl implements AppMenuPropertiesDelegate
-         menu.findItem(R.id.all_bookmarks_menu_id).setVisible(false);
-         menu.findItem(R.id.bookmark_all_tabs_menu_id).setVisible(false);
-         menu.findItem(R.id.preferences_id).setVisible(false);
+@@ -517,6 +517,10 @@ public class AppMenuPropertiesDelegateImpl implements AppMenuPropertiesDelegate
+
+         // Only display the Enter VR button if VR Shell Dev environment is enabled.
+         menu.findItem(R.id.enter_vr_id).setVisible(isCurrentTabNotNull && shouldShowEnterVr());
++
++        // Hide view source and exit
 +        menu.findItem(R.id.view_source_id).setVisible(false);
 +        menu.findItem(R.id.exit_id).setVisible(false);
 
          updateManagedByMenuItem(menu, currentTab);
      }
+
 --
 2.17.1
