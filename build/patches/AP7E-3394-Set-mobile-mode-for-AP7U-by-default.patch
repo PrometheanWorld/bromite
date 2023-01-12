@@ -1,0 +1,54 @@
+From 4166f425495ff79cbcad60d907887c700f6419ee Mon Sep 17 00:00:00 2001
+From: Channing Yu <channing@nd.com.cn>
+Date: Thu, 12 Jan 2023 15:25:53 +0000
+Subject: [PATCH] AP7E-3394 AP7- Nickel - Performance issues after updating to
+ 5.3.220.4 and 5.4
+
+Set mobile mode for AP7-U by default to solve performance issues.
+---
+ .../framehost/NavigationControllerImpl.java   | 19 +++++++++++++++++++
+ 1 file changed, 19 insertions(+)
+
+diff --git a/content/public/android/java/src/org/chromium/content/browser/framehost/NavigationControllerImpl.java b/content/public/android/java/src/org/chromium/content/browser/framehost/NavigationControllerImpl.java
+index aff79e7daf76e..b87b301d217f3 100644
+--- a/content/public/android/java/src/org/chromium/content/browser/framehost/NavigationControllerImpl.java
++++ b/content/public/android/java/src/org/chromium/content/browser/framehost/NavigationControllerImpl.java
+@@ -21,6 +21,8 @@ import org.chromium.content_public.common.ResourceRequestBody;
+ import org.chromium.url.GURL;
+ import org.chromium.url.Origin;
+ 
++import java.lang.reflect.Method;
++
+ /**
+  * The NavigationControllerImpl Java wrapper to allow communicating with the native
+  * NavigationControllerImpl object.
+@@ -45,9 +47,26 @@ import org.chromium.url.Origin;
+     private static boolean isDesktopSite() {
+         final boolean alwaysDesktopModeEnabled = SharedPreferencesManager.getInstance().readBoolean(
+             ChromePreferenceKeys.USERAGENT_ALWAYS_DESKTOP_MODE, true);
++        String productModel = getProperty("ro.promethean.activpanel.model");
++        if ("AP7_U".equals(productModel)) {
++            return false;
++        }
+         return alwaysDesktopModeEnabled;
+     }
+ 
++    public static String getProperty(String key) {
++        String value = "unknown";
++        try {
++            Class<?> c = Class.forName("android.os.SystemProperties");
++            Method get = c.getMethod("get", String.class, String.class);
++            value = (String) (get.invoke(c, key, "unknown"));
++        } catch (Exception e) {
++            e.printStackTrace();
++        } finally {
++            return value;
++        }
++    }
++
+     @CalledByNative
+     private void destroy() {
+         mNativeNavigationControllerAndroid = 0;
+-- 
+2.17.1
+
