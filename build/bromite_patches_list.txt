@@ -209,3 +209,4 @@ Hide-view-source-and-exit.patch
 Change-default-user-agent.patch
 Set-AllowUserCertificates-flag-to-ENABLE.patch
 AP7E-3394-Set-mobile-mode-for-AP7U-by-default.patch
+Add-some-support-method-for-audio-visual.patch
