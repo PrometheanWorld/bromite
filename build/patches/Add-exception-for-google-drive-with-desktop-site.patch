@@ -1,0 +1,153 @@
+From 9de5299637b2b51bfb0e04b9ca56ac737962adce Mon Sep 17 00:00:00 2001
+From: Kun Ming <mingkun@nd.com.cn>
+Date: Tue, 14 Nov 2023 17:03:01 +0800
+Subject: [PATCH] AP7E-3426 Unable to play video files from Google Drive when
+ using Chromium
+
+Why:
+Users can not play video files from Google Drive when using Chromium.
+
+How:
+We found that when setting Chromium to mobile mode,
+we can play videos on Google Drive without issues,
+whereas it doesn't work in desktop mode.
+
+We also found that Chromium can be the default in desktop mode,
+with exceptions for certain web pages. In other words,
+it can be configured to use mobile mode only when browsing the web version of Google Drive
+(allowing users to watch videos normally), while it remains in desktop mode for other web pages.
+
+Considering the complexity of setting VLC as the default player,
+we decided to modify Chromium source codes to add the desktop mode exception for Google Drive as the default setting in Chromium.
+---
+ .../chromium/chrome/browser/tab/TabImpl.java  | 52 +++++++++++++++++++
+ content/public/common/content_features.cc     |  4 +-
+ 2 files changed, 54 insertions(+), 2 deletions(-)
+
+diff --git a/chrome/android/java/src/org/chromium/chrome/browser/tab/TabImpl.java b/chrome/android/java/src/org/chromium/chrome/browser/tab/TabImpl.java
+index 7cdbb4ceac3b8..f2693cf58c265 100644
+--- a/chrome/android/java/src/org/chromium/chrome/browser/tab/TabImpl.java
++++ b/chrome/android/java/src/org/chromium/chrome/browser/tab/TabImpl.java
+@@ -30,6 +30,8 @@ import org.chromium.content_public.browser.NavigationController;
+ import org.chromium.base.supplier.ObservableSupplierImpl;
+ import org.chromium.chrome.browser.preferences.ChromePreferenceKeys;
+ import org.chromium.chrome.browser.preferences.SharedPreferencesManager;
++import org.chromium.components.content_settings.ContentSettingsType;
++import org.chromium.components.content_settings.ContentSettingValues;
+ import org.chromium.components.embedder_support.util.UrlUtilities;
+ import org.chromium.base.supplier.Supplier;
+ import org.chromium.chrome.R;
+@@ -54,6 +56,11 @@ import org.chromium.chrome.browser.tab.state.SerializedCriticalPersistedTabData;
+ import org.chromium.chrome.browser.ui.TabObscuringHandler;
+ import org.chromium.chrome.browser.ui.native_page.FrozenNativePage;
+ import org.chromium.chrome.browser.ui.native_page.NativePage;
++import org.chromium.components.browser_ui.site_settings.ContentSettingException;
++import org.chromium.components.browser_ui.site_settings.SiteSettingsCategory;
++import org.chromium.components.browser_ui.site_settings.Website;
++import org.chromium.components.browser_ui.site_settings.WebsiteAddress;
++import org.chromium.components.browser_ui.site_settings.WebsitePreferenceBridge;
+ import org.chromium.chrome.browser.vr.VrModuleProvider;
+ import org.chromium.components.dom_distiller.core.DomDistillerUrlUtils;
+ import org.chromium.components.embedder_support.util.UrlConstants;
+@@ -85,6 +92,7 @@ import org.chromium.content_public.browser.SelectionPopupController;
+ import org.chromium.chrome.browser.preferences.Pref;
+ import org.chromium.components.user_prefs.UserPrefs;
+ 
++import java.lang.reflect.Method;
+ /**
+  * Implementation of the interface {@link Tab}. Contains and manages a {@link ContentView}.
+  * This class is not intended to be extended.
+@@ -99,6 +107,8 @@ public class TabImpl implements Tab, TabObscuringHandler.Observer {
+ 
+     private static final String REQUEST_DESKTOP_ENABLED_PARAM = "enabled";
+ 
++    private static final String ADDED_EXCEPTION_FOR_GOOGLE_DRIVE = "Added an exception for google drvie";
++
+     private long mNativeTabAndroid;
+ 
+     /** Unique id of this tab (within its container). */
+@@ -1518,6 +1528,10 @@ public class TabImpl implements Tab, TabObscuringHandler.Observer {
+     }
+ 
+     private void notifyPageTitleChanged() {
++        GURL tmpGURL = getUrl();
++        if("drive.google.com".equals(tmpGURL.getHost()) && "/drive/".equals(tmpGURL.getPath())){
++            reload();
++        }
+         RewindableIterator<TabObserver> observers = getTabObservers();
+         while (observers.hasNext()) {
+             observers.next().onTitleUpdated(this);
+@@ -1711,6 +1725,19 @@ public class TabImpl implements Tab, TabObscuringHandler.Observer {
+         }
+     }
+ 
++    public static String getProperty(String key) {
++        String value = "unknown";
++        try {
++            Class<?> c = Class.forName("android.os.SystemProperties");
++            Method get = c.getMethod("get", String.class, String.class);
++            value = (String) (get.invoke(c, key, "unknown"));
++        } catch (Exception e) {
++            e.printStackTrace();
++        } finally {
++            return value;
++        }
++    }
++
+     private @UserAgentOverrideOption int calculateUserAgentOverrideOption() {
+         WebContents webContents = getWebContents();
+         boolean currentRequestDesktopSite = webContents == null
+@@ -1739,6 +1766,31 @@ public class TabImpl implements Tab, TabObscuringHandler.Observer {
+             // 2. User-enabled request desktop site in site settings.
+             Profile profile =
+                     IncognitoUtils.getProfileFromWindowAndroid(mWindowAndroid, isIncognito());
++            // AP7E-3426 - start
++            boolean GoogleDriveExceptionEnabled = SharedPreferencesManager.getInstance().readBoolean(ADDED_EXCEPTION_FOR_GOOGLE_DRIVE, false);
++            if(GoogleDriveExceptionEnabled == false){
++                String productModel = getProperty("ro.promethean.activpanel.model");
++                    if ("AP7_U".equals(productModel) == false) {
++                        // Set desktop site mode by default, except for Nickle panel.
++                    int desktopSiteTypeNumber = 24;
++                    Boolean enableDesktopSite = true;
++                    WebsitePreferenceBridge.setCategoryEnabled(profile, SiteSettingsCategory.contentSettingsType(desktopSiteTypeNumber), enableDesktopSite);
++                    // Note: "1" -> SiteLayout.DESKTOP; "2" -> SiteLayout.NUM_ENTRIES. See details in SingleCategorySettings.SiteLayout
++                    // (https://source.chromium.org/search?q=SiteLayout&ss=chromium%2Fchromium%2Fsrc)
++                    RecordHistogram.recordEnumeratedHistogram("Android.RequestDesktopSite.Changed", 1, 2);
++                    RecordHistogram.recordBooleanHistogram("Android.RequestDesktopSite.UseDesktopUserAgent", true);
++                }
++                // Add an exception for Google Drive website, except for Nickle panel.
++                int contentSettingsType = 75;
++                WebsiteAddress googledriveAddress = WebsiteAddress.create("drive.google.com");
++                Website googledrivesite = new Website(googledriveAddress, googledriveAddress);
++                ContentSettingException googleExpNew = new ContentSettingException(contentSettingsType, "https://drive.google.com:443", "*", ContentSettingValues.BLOCK, "preference");
++                googledrivesite.setContentSettingException(contentSettingsType, googleExpNew);
++                googledrivesite.setContentSetting(profile, contentSettingsType, ContentSettingValues.BLOCK);
++                SharedPreferencesManager.getInstance().writeBoolean(ADDED_EXCEPTION_FOR_GOOGLE_DRIVE, true);
++            }
++            // AP7E-3426 - end
++
+             boolean shouldRequestDesktopSite;
+             if (ContentFeatureList.isEnabled(ContentFeatureList.REQUEST_DESKTOP_SITE_EXCEPTIONS)) {
+                 shouldRequestDesktopSite = getWebContents() != null
+diff --git a/content/public/common/content_features.cc b/content/public/common/content_features.cc
+index a4928a5d4a7e9..ed5cf71d875a6 100644
+--- a/content/public/common/content_features.cc
++++ b/content/public/common/content_features.cc
+@@ -1215,12 +1215,12 @@ const base::Feature kOnDemandAccessibilityEvents{
+ // Request Desktop Site per-site setting for Android.
+ // Refer to the launch bug (https://crbug.com/1244979) for more information.
+ const base::Feature kRequestDesktopSiteExceptions{
+-    "RequestDesktopSiteExceptions", base::FEATURE_DISABLED_BY_DEFAULT};
++    "RequestDesktopSiteExceptions", base::FEATURE_ENABLED_BY_DEFAULT};
+ 
+ // Request Desktop Site global setting for Android.
+ // Refer to the launch bug (https://crbug.com/1107601) for more information.
+ const base::Feature kRequestDesktopSiteGlobal{
+-    "RequestDesktopSiteGlobal", base::FEATURE_DISABLED_BY_DEFAULT};
++    "RequestDesktopSiteGlobal", base::FEATURE_ENABLED_BY_DEFAULT};
+ 
+ // Screen Capture API support for Android
+ const base::Feature kUserMediaScreenCapturing{
+-- 
+2.34.1
+
